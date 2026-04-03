@@ -1,4 +1,4 @@
-# FROM --platform=linux/amd64,linux/arm64 openjdk:11
+# FROM --platform=linux/amd64,linux/arm64 eclipse-temurin:11.0.20.1_1-jdk-focal
 ARG TARGETPLATFORM
 FROM --platform=linux/amd64 eclipse-temurin:11-jre as base
 
