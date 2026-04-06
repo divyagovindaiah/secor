@@ -77,7 +77,12 @@ public class TestLogMessageProducer extends Thread {
             throw new RuntimeException("Undefined message encoding type: " + mType);
         }
 
-        TSerializer serializer = new TSerializer(protocol);
+        TSerializer serializer;
+        try {
+            serializer = new TSerializer(protocol);
+        } catch (org.apache.thrift.transport.TTransportException e) {
+            throw new RuntimeException(e);
+        }
         for (int i = 0; i < mNumMessages; ++i) {
             long time = (System.currentTimeMillis() - mTimeshift * 1000L) * 1000000L + i;
             TestMessage testMessage = new TestMessage(time,
