@@ -66,8 +66,6 @@ public class TestLogMessageProducer extends Thread {
         properties.put("key.serializer", StringSerializer.class);
         properties.put("acks", "1");
 
-        Producer<String, byte[]> producer = new KafkaProducer<>(properties);
-
         TProtocolFactory protocol = null;
         if(mType.equals("json")) {
             protocol = new TSimpleJSONProtocol.Factory();
@@ -77,25 +75,32 @@ public class TestLogMessageProducer extends Thread {
             throw new RuntimeException("Undefined message encoding type: " + mType);
         }
 
-        TSerializer serializer = new TSerializer(protocol);
-        for (int i = 0; i < mNumMessages; ++i) {
-            long time = (System.currentTimeMillis() - mTimeshift * 1000L) * 1000000L + i;
-            TestMessage testMessage = new TestMessage(time,
-                                                      "some_value_" + i);
-            if (i % 2 == 0) {
-                testMessage.setEnumField(TestEnum.SOME_VALUE);
-            } else {
-                testMessage.setEnumField(TestEnum.SOME_OTHER_VALUE);
-            }
-            byte[] bytes;
-            try {
-                bytes = serializer.serialize(testMessage);
-            } catch(TException e) {
-                throw new RuntimeException("Failed to serialize message " + testMessage, e);
-            }
-            ProducerRecord<String, byte[]> data = new ProducerRecord<>(mTopic, Integer.toString(i), bytes);
-            producer.send(data);
+        TSerializer serializer;
+        try {
+            serializer = new TSerializer(protocol);
+        } catch (org.apache.thrift.transport.TTransportException e) {
+            throw new RuntimeException(e);
         }
-        producer.close();
+
+        try (Producer<String, byte[]> producer = new KafkaProducer<>(properties)) {
+            for (int i = 0; i < mNumMessages; ++i) {
+                long time = (System.currentTimeMillis() - mTimeshift * 1000L) * 1000000L + i;
+                TestMessage testMessage = new TestMessage(time,
+                                                          "some_value_" + i);
+                if (i % 2 == 0) {
+                    testMessage.setEnumField(TestEnum.SOME_VALUE);
+                } else {
+                    testMessage.setEnumField(TestEnum.SOME_OTHER_VALUE);
+                }
+                byte[] bytes;
+                try {
+                    bytes = serializer.serialize(testMessage);
+                } catch(TException e) {
+                    throw new RuntimeException("Failed to serialize message " + testMessage, e);
+                }
+                ProducerRecord<String, byte[]> data = new ProducerRecord<>(mTopic, Integer.toString(i), bytes);
+                producer.send(data);
+            }
+        }
     }
 }
